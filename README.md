@@ -1,1 +1,1 @@
-### Simple REST api using gin/golang
+### REST api using gin/golang
