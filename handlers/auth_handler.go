@@ -6,36 +6,42 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"github.com/mohamedafify/go-backend/models"
 	"github.com/mohamedafify/go-backend/utils"
 )
 
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+type authClaims struct {
+	jwt.StandardClaims
+	userId uuid.UUID
 }
 
-func createToken() (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{})
-	tokenString, err := token.SignedString(utils.JWT_SECRET)
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
-}
-
-func Login() gin.HandlerFunc {
+func Signup() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		loginRequest := &LoginRequest{}
-		if err := utils.BindBody(c, loginRequest); err != nil {
+		signupRequest := &models.SignupRequest{}
+		if err := utils.BindBody(c, signupRequest); err != nil {
 			return
 		}
-		token, err := createToken()
+		user, err := models.CreateUser(c, signupRequest)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"errors": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"token": token})
+		c.JSON(http.StatusOK, gin.H{"token": user.Token})
 	}
+}
+
+func Login() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 		loginRequest := &models.LoginRequest{}
+		// 		if err := utils.BindBody(c, loginRequest); err != nil {
+		// 			return
+		// 		}
+		// 		c.JSON(http.StatusOK, gin.H{"token": token})
+	}
+}
+
+func setContextKeys(c *gin.Context, data *authClaims) {
 }
 
 func Auth() gin.HandlerFunc {
@@ -51,7 +57,8 @@ func Auth() gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"errors": "authorization header is required"})
 				return
 			}
-			token, err := jwt.Parse(reqJwtToken, func(token *jwt.Token) (interface{}, error) {
+			myClaims := &authClaims{}
+			token, err := jwt.ParseWithClaims(reqJwtToken, myClaims, func(token *jwt.Token) (interface{}, error) {
 				return utils.JWT_SECRET, nil
 			})
 			if err != nil {
@@ -63,6 +70,7 @@ func Auth() gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"errors": "Invalid token"})
 				return
 			}
+			setContextKeys(c, myClaims)
 			c.Next()
 		} else {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"errors": "invalid api key"})
