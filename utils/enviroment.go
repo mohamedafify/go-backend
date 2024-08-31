@@ -13,7 +13,7 @@ var JWT_SECRET []byte
 
 func SetupEnv() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Failed to get enviromentVariables")
+		log.Fatalf("Failed to get enviroment variables with err: %v", err.Error())
 	}
 
 	ginMode, _ := Getenv("GIN_MODE", gin.DebugMode)

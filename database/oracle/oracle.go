@@ -29,7 +29,7 @@ func (db *OracleDatabase) DB() (*sql.DB, error) {
 	return conn, nil
 }
 
-func (db *OracleDatabase) ConnectionString(params map[string]any) error {
+func (db *OracleDatabase) SetConnectionString(params map[string]any) error {
 	ip, ok := params["ip"].(string)
 	if !ok {
 		errorString := "ip is required and must be a string"

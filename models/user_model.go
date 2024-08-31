@@ -1,10 +1,9 @@
 package models
 
 import (
-	"net/http"
+	"log"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/mohamedafify/go-backend/database"
 	"github.com/mohamedafify/go-backend/database/oracle"
@@ -22,16 +21,16 @@ type User struct {
 	CreatedAt   time.Time
 }
 
-func CreateUser(c *gin.Context, req *SignupRequest) (*User, error) {
+func CreateUser(req *SignupRequest) (*User, error) {
 	// hash password
 	encpw, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Printf("Error generating password when creating user, err: %v", err.Error())
 		return nil, err
 	}
 
 	token, err := createToken()
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"errors": err.Error()})
 		return nil, err
 	}
 
@@ -42,13 +41,7 @@ func CreateUser(c *gin.Context, req *SignupRequest) (*User, error) {
 		Token:     token,
 		CreatedAt: time.Now(),
 	}
-	if err := createDatabaseUser(c, user); err != nil {
-		return nil, err
-	}
-	return user, nil
-}
 
-func createDatabaseUser(c *gin.Context, user *User) error {
 	oracleDb := oracle.OracleDatabase{}
 	password, _ := utils.Getenv("DB_PASSWORD", "")
 	connectionParams := map[string]any{
@@ -58,14 +51,21 @@ func createDatabaseUser(c *gin.Context, user *User) error {
 		"user":     "DEMO",
 		"password": password,
 	}
-	oracleDb.ConnectionString(connectionParams)
+	oracleDb.SetConnectionString(connectionParams)
 
+	if err := createDatabaseUser(user, &oracleDb); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func createDatabaseUser(user *User, mydb db.Database) error {
 	query := `
 	INSERT INTO USERS(PK, EMAIL, PASSWORD, NAME, TOKEN)
 	VALUES (:PK, :EMAIL, :PASSWORD, :NAME, :TOKEN)`
 
 	values := []any{user.Id.String(), user.Email, string(user.Password), string(user.Name), user.Token}
-	if err := db.Exec(c, &oracleDb, query, values); err == nil {
+	if err := db.Exec(mydb, query, values); err != nil {
 		return err
 	}
 	return nil

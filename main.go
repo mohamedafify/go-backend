@@ -13,7 +13,7 @@ func setupServer() *gin.Engine {
 	server := gin.Default()
 	utils.SetupValidations(server)
 	server.NoRoute(func(c *gin.Context) {
-		c.JSON(404, gin.H{"code": "PAGE_NOT_FOUND", "message": "Page not found"})
+		c.JSON(404, gin.H{"message": "Page not found"})
 	})
 	server.SetTrustedProxies(nil)
 	return server

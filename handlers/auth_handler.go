@@ -22,7 +22,7 @@ func Signup() gin.HandlerFunc {
 		if err := utils.BindBody(c, signupRequest); err != nil {
 			return
 		}
-		user, err := models.CreateUser(c, signupRequest)
+		user, err := models.CreateUser(signupRequest)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"errors": err.Error()})
 			return
